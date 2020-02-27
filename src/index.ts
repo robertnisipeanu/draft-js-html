@@ -6,12 +6,12 @@ export function convertDraftToHtml(rawContent: RawDraftContentState): any {
     });
 
     const _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0);
-    const contentApplyBlockGroupStyle = _calculatedBlockGroups.map((blockResult: IResult) => {
+    _calculatedBlockGroups.forEach((blockResult: IResult) => {
         contentApplyBlockStyle[blockResult.index] = "<ul>" + contentApplyBlockStyle[blockResult.index];
         contentApplyBlockStyle[blockResult.index + blockResult.size] = contentApplyBlockStyle[blockResult.index + blockResult.size] + "</ul>";
     });
 
-    return contentApplyBlockGroupStyle;
+    return contentApplyBlockStyle;
 }
 
 function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string {
