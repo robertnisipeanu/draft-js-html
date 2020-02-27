@@ -1,14 +1,20 @@
 import {RawDraftContentState, RawDraftContentBlock} from "draft-js";
 
 export function convertDraftToHtml(rawContent: RawDraftContentState): any {
-    const content = rawContent.blocks.map((rawBlock: RawDraftContentBlock) => {
+    const contentApplyBlockStyle = rawContent.blocks.map((rawBlock: RawDraftContentBlock) => {
         return getHtmlBlockFromDraftText(rawBlock);
     });
 
-    return content;
+    const _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0);
+    const contentApplyBlockGroupStyle = _calculatedBlockGroups.map((blockResult: IResult) => {
+        contentApplyBlockStyle[blockResult.index] = "<ul>" + contentApplyBlockStyle[blockResult.index];
+        contentApplyBlockStyle[blockResult.index + blockResult.size] = contentApplyBlockStyle[blockResult.index + blockResult.size] + "</ul>";
+    });
+
+    return contentApplyBlockGroupStyle;
 }
 
-function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string | void {
+function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string {
     switch(textBlock.type){
         case 'unstyled':
         // return `<p>${rawBlock.text}</p>`;
@@ -36,4 +42,34 @@ function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string | vo
         default:
             return `${textBlock.text}`;
     }
+}
+
+interface IResult {
+    index: number;
+    size: number;
+    type: string;
+}
+
+function calculateBlockGroups(data: RawDraftContentBlock[], start: number, recursiveResult: IResult[] = []): IResult[] {
+    const startBlock = data[start];
+    let size = 1;
+
+    for(let i = start + 1; i < data.length; i++){
+        if(startBlock.type === data[i].type && startBlock.depth <= data[i].depth) {
+            if(startBlock.depth < data[i].depth){
+                recursiveResult = calculateBlockGroups(data, i, recursiveResult);
+                size += recursiveResult[recursiveResult.length - 1].size;
+                i += recursiveResult[recursiveResult.length - 1].size - 1;
+            }
+            else
+                size++;
+        }
+        else if(startBlock.type !== data[i].type && startBlock.depth <= data[i].depth){
+            recursiveResult = calculateBlockGroups(data, i, recursiveResult);
+            break;
+        }
+    }
+
+    recursiveResult.push({index: start, size: size, type: startBlock.type});
+    return recursiveResult;
 }
