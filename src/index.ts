@@ -8,7 +8,7 @@ export function convertDraftToHtml(rawContent: RawDraftContentState): any {
     const _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0);
     _calculatedBlockGroups.forEach((blockResult: IResult) => {
         contentApplyBlockStyle[blockResult.index] = "<ul>" + contentApplyBlockStyle[blockResult.index];
-        contentApplyBlockStyle[blockResult.index + blockResult.size] = contentApplyBlockStyle[blockResult.index + blockResult.size] + "</ul>";
+        contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = contentApplyBlockStyle[blockResult.index + blockResult.size - 1] + "</ul>";
     });
 
     return contentApplyBlockStyle;
