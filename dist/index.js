@@ -1,17 +1,40 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function convertDraftToHtml(rawContent) {
+function convertDraftToHtml(rawContent, customBlockStyleFn, customMultiBlockStyleFn) {
     var contentApplyBlockStyle = rawContent.blocks.map(function (rawBlock) {
-        return getHtmlBlockFromDraftText(rawBlock);
+        var result;
+        if (customBlockStyleFn)
+            result = customBlockStyleFn(rawBlock);
+        if (!result)
+            result = getHtmlBlockFromDraftText(rawBlock);
+        return result;
     });
-    var _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0);
+    var _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0).sort(function (a, b) { return (a.index > b.index) ? 1 : -1; });
     _calculatedBlockGroups.forEach(function (blockResult) {
-        contentApplyBlockStyle[blockResult.index] = "<ul>" + contentApplyBlockStyle[blockResult.index];
-        contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = contentApplyBlockStyle[blockResult.index + blockResult.size - 1] + "</ul>";
+        // const blockGroupElement = getHtmlGroupBlockFromDraftText(blockResult.type);
+        var blockGroupElement;
+        if (customMultiBlockStyleFn)
+            blockGroupElement = customMultiBlockStyleFn(blockResult.type);
+        if (!blockGroupElement)
+            blockGroupElement = getHtmlGroupBlockFromDraftText(blockResult.type);
+        if (blockGroupElement) {
+            contentApplyBlockStyle[blockResult.index] = "<" + blockGroupElement + ">\n" + contentApplyBlockStyle[blockResult.index];
+            contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = contentApplyBlockStyle[blockResult.index + blockResult.size - 1] + "\n</" + blockGroupElement + ">";
+        }
     });
-    return contentApplyBlockStyle;
+    return contentApplyBlockStyle.join("\n");
 }
 exports.convertDraftToHtml = convertDraftToHtml;
+function getHtmlGroupBlockFromDraftText(type) {
+    switch (type) {
+        case 'ordered-list-item':
+            return 'ol';
+        case 'unordered-list-item':
+            return 'ul';
+        default:
+            return;
+    }
+}
 function getHtmlBlockFromDraftText(textBlock) {
     switch (textBlock.type) {
         case 'unstyled':
