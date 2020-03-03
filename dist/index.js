@@ -1,12 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function convertDraftToHtml(rawContent, customBlockStyleFn, customMultiBlockStyleFn) {
+    // const parser = new DOMParser();
+    // const htmlDoc = parser.parseFromString("<strong>Test <i>test test</strong> test</i> test test", 'text/html').body.innerHTML;
     var contentApplyBlockStyle = rawContent.blocks.map(function (rawBlock) {
+        var inlineStyledBlock;
+        try {
+            inlineStyledBlock = getHtmlInlineStyleFromDraftText(rawBlock);
+            var parser = new DOMParser();
+            inlineStyledBlock.text = parser.parseFromString(inlineStyledBlock.text, 'text/html').body.innerHTML;
+        }
+        catch (e) {
+            inlineStyledBlock = rawBlock;
+        }
         var result;
         if (customBlockStyleFn)
-            result = customBlockStyleFn(rawBlock);
+            result = customBlockStyleFn(inlineStyledBlock);
         if (!result)
-            result = getHtmlBlockFromDraftText(rawBlock);
+            result = getHtmlBlockFromDraftText(inlineStyledBlock);
         return result;
     });
     var _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0).sort(function (a, b) { return (a.index > b.index) ? 1 : -1; });
@@ -25,6 +36,57 @@ function convertDraftToHtml(rawContent, customBlockStyleFn, customMultiBlockStyl
     return contentApplyBlockStyle.join("\n");
 }
 exports.convertDraftToHtml = convertDraftToHtml;
+function getStyleElement(style, customInlineStyleFn) {
+    var styleElement;
+    if (customInlineStyleFn)
+        styleElement = customInlineStyleFn(style);
+    if (!styleElement)
+        styleElement = getDefaultInlineStyle(style);
+    return styleElement;
+}
+function getHtmlInlineStyleFromDraftText(textBlock, customInlineStyleFn) {
+    if (!textBlock.inlineStyleRanges || textBlock.inlineStyleRanges.length == 0)
+        return textBlock;
+    var currentStyle = textBlock.inlineStyleRanges.shift();
+    if (!currentStyle)
+        return textBlock;
+    var styleEl = getStyleElement(currentStyle.style, customInlineStyleFn);
+    if (!styleEl)
+        return getHtmlInlineStyleFromDraftText(textBlock);
+    var nextText = [
+        textBlock.text.slice(0, currentStyle.offset),
+        styleEl.start + textBlock.text.slice(currentStyle.offset, currentStyle.offset + currentStyle.length) + styleEl.end,
+        textBlock.text.slice(currentStyle.offset + currentStyle.length)
+    ].join('');
+    textBlock.inlineStyleRanges = textBlock.inlineStyleRanges.map(function (style) {
+        var newStyle = JSON.parse(JSON.stringify(style));
+        if (currentStyle.offset <= style.offset)
+            newStyle.offset += styleEl.start.length;
+        else if (currentStyle.offset <= style.offset + style.length)
+            newStyle.length += styleEl.start.length;
+        if (currentStyle.offset + currentStyle.length <= style.offset)
+            newStyle.offset += styleEl.end.length;
+        else if (currentStyle.offset + currentStyle.length <= style.offset + style.length)
+            newStyle.length += styleEl.end.length;
+        return newStyle;
+    });
+    textBlock.text = nextText;
+    return getHtmlInlineStyleFromDraftText(textBlock);
+}
+function getDefaultInlineStyle(type) {
+    switch (type) {
+        case "BOLD":
+            return { start: "<strong>", end: "</strong>" };
+        case "ITALIC":
+            return { start: "<i>", end: "</i>" };
+        case "UNDERLINE":
+            return { start: "<u>", end: "</u>" };
+        case "CODE":
+            return { start: "<code>", end: "</code>" };
+        default:
+            return;
+    }
+}
 function getHtmlGroupBlockFromDraftText(type) {
     switch (type) {
         case 'ordered-list-item':

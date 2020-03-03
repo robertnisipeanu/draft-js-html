@@ -1,20 +1,32 @@
-import {DraftBlockType, RawDraftContentBlock, RawDraftContentState} from "draft-js";
+import {DraftBlockType, DraftInlineStyleType, RawDraftContentBlock, RawDraftContentState, RawDraftInlineStyleRange} from "draft-js";
+interface IElementInlineStyle {
+    start: string;
+    end: string;
+}
 
-type blockStyleCallback = (rawBlock: RawDraftContentBlock) => string | void;
-type multiBlockStyleCallback = (type: DraftBlockType) => string | void;
+type InlineStyleCallback = (type: DraftInlineStyleType) => IElementInlineStyle | void;
+type BlockStyleCallback = (rawBlock: RawDraftContentBlock) => string | void;
+type MultiBlockStyleCallback = (type: DraftBlockType) => string | void;
 
-export function convertDraftToHtml(rawContent: RawDraftContentState, customBlockStyleFn?: blockStyleCallback, customMultiBlockStyleFn?: multiBlockStyleCallback): string {
-
-    // const parser = new DOMParser();
-    // const htmlDoc = parser.parseFromString("<strong>Test <i>test test</strong> test</i> test test", 'text/html').body.innerHTML;
+export function convertDraftToHtml(rawContent: RawDraftContentState, customBlockStyleFn?: BlockStyleCallback, customMultiBlockStyleFn?: MultiBlockStyleCallback): string {
 
     const contentApplyBlockStyle = rawContent.blocks.map((rawBlock: RawDraftContentBlock) => {
+
+        let inlineStyledBlock;
+        try {
+            inlineStyledBlock = getHtmlInlineStyleFromDraftText(rawBlock);
+            const parser = new DOMParser();
+            inlineStyledBlock.text = parser.parseFromString(inlineStyledBlock.text, 'text/html').body.innerHTML;
+        } catch(e) {
+            inlineStyledBlock = rawBlock;
+        }
+
         let result;
         if (customBlockStyleFn)
-            result = customBlockStyleFn(rawBlock);
+            result = customBlockStyleFn(inlineStyledBlock);
 
         if (!result)
-            result = getHtmlBlockFromDraftText(rawBlock);
+            result = getHtmlBlockFromDraftText(inlineStyledBlock);
         return result;
     });
 
@@ -22,7 +34,6 @@ export function convertDraftToHtml(rawContent: RawDraftContentState, customBlock
 
 
     _calculatedBlockGroups.forEach((blockResult: IResult) => {
-        // const blockGroupElement = getHtmlGroupBlockFromDraftText(blockResult.type);
         let blockGroupElement;
         if(customMultiBlockStyleFn)
             blockGroupElement = customMultiBlockStyleFn(blockResult.type);
@@ -36,6 +47,71 @@ export function convertDraftToHtml(rawContent: RawDraftContentState, customBlock
     });
 
     return contentApplyBlockStyle.join("\n");
+}
+
+function getStyleElement(style: DraftInlineStyleType, customInlineStyleFn?: InlineStyleCallback) {
+    let styleElement;
+    if(customInlineStyleFn)
+        styleElement = customInlineStyleFn(style);
+    if(!styleElement)
+        styleElement = getDefaultInlineStyle(style);
+
+    return styleElement;
+}
+
+function getHtmlInlineStyleFromDraftText(textBlock: RawDraftContentBlock, customInlineStyleFn?: InlineStyleCallback): RawDraftContentBlock {
+    if(!textBlock.inlineStyleRanges || textBlock.inlineStyleRanges.length == 0) return textBlock;
+
+    const currentStyle = textBlock.inlineStyleRanges.shift();
+    if(!currentStyle) return textBlock;
+    const styleEl = getStyleElement(currentStyle.style, customInlineStyleFn);
+    if(!styleEl) return getHtmlInlineStyleFromDraftText(textBlock);
+
+    let nextText = [
+        textBlock.text.slice(0, currentStyle.offset),
+        styleEl.start + textBlock.text.slice(currentStyle.offset, currentStyle.offset + currentStyle.length) + styleEl.end,
+        textBlock.text.slice(currentStyle.offset + currentStyle.length)
+    ].join('');
+
+    textBlock.inlineStyleRanges = textBlock.inlineStyleRanges.map((style) => {
+        const newStyle: RawDraftInlineStyleRange = JSON.parse(JSON.stringify(style));
+        if(currentStyle.offset <= style.offset)
+            newStyle.offset += styleEl.start.length;
+        else if(currentStyle.offset <= style.offset + style.length)
+            newStyle.length += styleEl.start.length;
+
+        if(currentStyle.offset + currentStyle.length <= style.offset)
+            newStyle.offset += styleEl.end.length;
+        else if(currentStyle.offset + currentStyle.length <= style.offset + style.length)
+            newStyle.length += styleEl.end.length;
+
+        return newStyle;
+    });
+
+    textBlock.text = nextText;
+
+    return getHtmlInlineStyleFromDraftText(textBlock);
+}
+
+interface IStyle {
+    offset: number;
+    length: number;
+    style: DraftInlineStyleType;
+}
+
+function getDefaultInlineStyle(type: DraftInlineStyleType): IElementInlineStyle | void {
+    switch(type){
+        case "BOLD":
+            return {start: "<strong>", end: "</strong>"};
+        case "ITALIC":
+            return {start: "<i>", end: "</i>"};
+        case "UNDERLINE":
+            return {start: "<u>", end: "</u>"};
+        case "CODE":
+            return {start: "<code>", end: "</code>"};
+        default:
+            return;
+    }
 }
 
 function getHtmlGroupBlockFromDraftText(type: DraftBlockType): string | void {
@@ -52,7 +128,6 @@ function getHtmlGroupBlockFromDraftText(type: DraftBlockType): string | void {
 function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string {
     switch (textBlock.type) {
         case 'unstyled':
-        // return `<p>${rawBlock.text}</p>`;
         case 'paragraph':
             return `<p>${textBlock.text}</p>`;
         case 'header-one':
