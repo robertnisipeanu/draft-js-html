@@ -1,10 +1,10 @@
 import {DraftBlockType, DraftInlineStyleType, RawDraftContentBlock, RawDraftContentState, RawDraftInlineStyleRange} from "draft-js";
-interface IElementInlineStyle {
+interface IElementStyle {
     start: string;
     end: string;
 }
 
-type InlineStyleCallback = (type: DraftInlineStyleType) => IElementInlineStyle | void;
+type InlineStyleCallback = (type: DraftInlineStyleType) => IElementStyle | void;
 type BlockStyleCallback = (rawBlock: RawDraftContentBlock) => string | void;
 type MultiBlockStyleCallback = (type: DraftBlockType) => string | void;
 
@@ -93,13 +93,7 @@ function getHtmlInlineStyleFromDraftText(textBlock: RawDraftContentBlock, custom
     return getHtmlInlineStyleFromDraftText(textBlock);
 }
 
-interface IStyle {
-    offset: number;
-    length: number;
-    style: DraftInlineStyleType;
-}
-
-function getDefaultInlineStyle(type: DraftInlineStyleType): IElementInlineStyle | void {
+function getDefaultInlineStyle(type: DraftInlineStyleType): IElementStyle | void {
     switch(type){
         case "BOLD":
             return {start: "<strong>", end: "</strong>"};
