@@ -12,11 +12,11 @@ interface IElement {
 
 type InlineStyleCallback = (type: DraftInlineStyleType) => IElementStyle | void;
 type BlockStyleCallback = (rawBlock: RawDraftContentBlock) => string | void;
-type MultiBlockStyleCallback = (type: DraftBlockType) => string | void;
+type MultiBlockStyleCallback = (type: DraftBlockType) => IElementStyle | void;
 
 export function convertDraftToHtml(rawContent: RawDraftContentState, customInlineStyleFn?: InlineStyleCallback, customBlockStyleFn?: BlockStyleCallback, customMultiBlockStyleFn?: MultiBlockStyleCallback): string {
 
-    const contentApplyBlockStyle = rawContent.blocks.map((rawBlock: RawDraftContentBlock) => {
+    let contentApplyBlockStyle = rawContent.blocks.map((rawBlock: RawDraftContentBlock) => {
 
         let inlineStyledBlock;
         try {
@@ -40,16 +40,8 @@ export function convertDraftToHtml(rawContent: RawDraftContentState, customInlin
 
 
     _calculatedBlockGroups.forEach((blockResult: IResult) => {
-        let blockGroupElement;
-        if(customMultiBlockStyleFn)
-            blockGroupElement = customMultiBlockStyleFn(blockResult.type);
-        if(!blockGroupElement)
-            blockGroupElement = getHtmlGroupBlockFromDraftText(blockResult.type);
-
-        if (blockGroupElement) {
-            contentApplyBlockStyle[blockResult.index] = `<${blockGroupElement}>\n${contentApplyBlockStyle[blockResult.index]}`;
-            contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = `${contentApplyBlockStyle[blockResult.index + blockResult.size - 1]}\n</${blockGroupElement}>`;
-        }
+        // getHtmlGroupBlockFromDraftText()
+        contentApplyBlockStyle = getHtmlGroupBlockFromDraftText(blockResult, contentApplyBlockStyle, customMultiBlockStyleFn);
     });
 
     return contentApplyBlockStyle.join("\n");
@@ -137,15 +129,31 @@ function getDefaultInlineStyle(type: DraftInlineStyleType): IElementStyle | unde
     }
 }
 
-function getHtmlGroupBlockFromDraftText(type: DraftBlockType): string | void {
+function getDefaultGroupBlock(type: DraftBlockType): IElementStyle | undefined {
     switch (type) {
         case 'ordered-list-item':
-            return 'ol';
+            return {element: 'ol'};
         case 'unordered-list-item':
-            return 'ul';
+            return {element: 'ul'};
         default:
             return;
     }
+}
+
+function getHtmlGroupBlockFromDraftText(blockResult: IResult, contentApplyBlockStyle: string[], customMultiBlockStyleFn?: MultiBlockStyleCallback): string[] {
+    let blockGroupElement;
+    if(customMultiBlockStyleFn)
+        blockGroupElement = customMultiBlockStyleFn(blockResult.type);
+    if(!blockGroupElement)
+        blockGroupElement = getDefaultGroupBlock(blockResult.type);
+    const blockGroupElStyle = getElementWithProperties(blockGroupElement);
+
+    if (blockGroupElStyle) {
+        contentApplyBlockStyle[blockResult.index] = `${blockGroupElStyle.start}\n${contentApplyBlockStyle[blockResult.index]}`;
+        contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = `${contentApplyBlockStyle[blockResult.index + blockResult.size - 1]}\n${blockGroupElStyle.end}`;
+    }
+
+    return contentApplyBlockStyle;
 }
 
 function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string {

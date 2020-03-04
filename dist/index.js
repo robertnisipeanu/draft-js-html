@@ -20,15 +20,8 @@ function convertDraftToHtml(rawContent, customInlineStyleFn, customBlockStyleFn,
     });
     var _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0).sort(function (a, b) { return (a.index > b.index) ? 1 : -1; });
     _calculatedBlockGroups.forEach(function (blockResult) {
-        var blockGroupElement;
-        if (customMultiBlockStyleFn)
-            blockGroupElement = customMultiBlockStyleFn(blockResult.type);
-        if (!blockGroupElement)
-            blockGroupElement = getHtmlGroupBlockFromDraftText(blockResult.type);
-        if (blockGroupElement) {
-            contentApplyBlockStyle[blockResult.index] = "<" + blockGroupElement + ">\n" + contentApplyBlockStyle[blockResult.index];
-            contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = contentApplyBlockStyle[blockResult.index + blockResult.size - 1] + "\n</" + blockGroupElement + ">";
-        }
+        // getHtmlGroupBlockFromDraftText()
+        contentApplyBlockStyle = getHtmlGroupBlockFromDraftText(blockResult, contentApplyBlockStyle, customMultiBlockStyleFn);
     });
     return contentApplyBlockStyle.join("\n");
 }
@@ -104,15 +97,28 @@ function getDefaultInlineStyle(type) {
             return;
     }
 }
-function getHtmlGroupBlockFromDraftText(type) {
+function getDefaultGroupBlock(type) {
     switch (type) {
         case 'ordered-list-item':
-            return 'ol';
+            return { element: 'ol' };
         case 'unordered-list-item':
-            return 'ul';
+            return { element: 'ul' };
         default:
             return;
     }
+}
+function getHtmlGroupBlockFromDraftText(blockResult, contentApplyBlockStyle, customMultiBlockStyleFn) {
+    var blockGroupElement;
+    if (customMultiBlockStyleFn)
+        blockGroupElement = customMultiBlockStyleFn(blockResult.type);
+    if (!blockGroupElement)
+        blockGroupElement = getDefaultGroupBlock(blockResult.type);
+    var blockGroupElStyle = getElementWithProperties(blockGroupElement);
+    if (blockGroupElStyle) {
+        contentApplyBlockStyle[blockResult.index] = blockGroupElStyle.start + "\n" + contentApplyBlockStyle[blockResult.index];
+        contentApplyBlockStyle[blockResult.index + blockResult.size - 1] = contentApplyBlockStyle[blockResult.index + blockResult.size - 1] + "\n" + blockGroupElStyle.end;
+    }
+    return contentApplyBlockStyle;
 }
 function getHtmlBlockFromDraftText(textBlock) {
     switch (textBlock.type) {
