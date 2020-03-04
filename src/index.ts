@@ -1,5 +1,11 @@
 import {DraftBlockType, DraftInlineStyleType, RawDraftContentBlock, RawDraftContentState, RawDraftInlineStyleRange} from "draft-js";
-interface IElementStyle {
+
+export interface IElementStyle {
+    element: string;
+    properties?: {[key: string]: string};
+}
+
+interface IElement {
     start: string;
     end: string;
 }
@@ -8,13 +14,13 @@ type InlineStyleCallback = (type: DraftInlineStyleType) => IElementStyle | void;
 type BlockStyleCallback = (rawBlock: RawDraftContentBlock) => string | void;
 type MultiBlockStyleCallback = (type: DraftBlockType) => string | void;
 
-export function convertDraftToHtml(rawContent: RawDraftContentState, customBlockStyleFn?: BlockStyleCallback, customMultiBlockStyleFn?: MultiBlockStyleCallback): string {
+export function convertDraftToHtml(rawContent: RawDraftContentState, customInlineStyleFn?: InlineStyleCallback, customBlockStyleFn?: BlockStyleCallback, customMultiBlockStyleFn?: MultiBlockStyleCallback): string {
 
     const contentApplyBlockStyle = rawContent.blocks.map((rawBlock: RawDraftContentBlock) => {
 
         let inlineStyledBlock;
         try {
-            inlineStyledBlock = getHtmlInlineStyleFromDraftText(rawBlock);
+            inlineStyledBlock = getHtmlInlineStyleFromDraftText(rawBlock, customInlineStyleFn);
             const parser = new DOMParser();
             inlineStyledBlock.text = parser.parseFromString(inlineStyledBlock.text, 'text/html').body.innerHTML;
         } catch(e) {
@@ -50,7 +56,7 @@ export function convertDraftToHtml(rawContent: RawDraftContentState, customBlock
 }
 
 function getStyleElement(style: DraftInlineStyleType, customInlineStyleFn?: InlineStyleCallback) {
-    let styleElement;
+    let styleElement: IElementStyle | void;
     if(customInlineStyleFn)
         styleElement = customInlineStyleFn(style);
     if(!styleElement)
@@ -59,12 +65,31 @@ function getStyleElement(style: DraftInlineStyleType, customInlineStyleFn?: Inli
     return styleElement;
 }
 
+function getElementWithProperties(el: IElementStyle | void) {
+    if(!el) return;
+
+    let styleStart = "<";
+    styleStart += el.element;
+    const props = el.properties ?
+        Object.keys(el.properties).map((key) => {
+            return key + "=\"" + el.properties![key] + "\""
+        }).join(" ") : "";
+
+    if(props.length > 0)
+        styleStart += " " + props;
+    styleStart += ">";
+    let styleEnd = `</${el.element}>`;
+
+    const finalStyle: IElement = {start: styleStart, end: styleEnd};
+    return finalStyle;
+}
+
 function getHtmlInlineStyleFromDraftText(textBlock: RawDraftContentBlock, customInlineStyleFn?: InlineStyleCallback): RawDraftContentBlock {
     if(!textBlock.inlineStyleRanges || textBlock.inlineStyleRanges.length == 0) return textBlock;
 
     const currentStyle = textBlock.inlineStyleRanges.shift();
     if(!currentStyle) return textBlock;
-    const styleEl = getStyleElement(currentStyle.style, customInlineStyleFn);
+    const styleEl = getElementWithProperties(getStyleElement(currentStyle.style, customInlineStyleFn));
     if(!styleEl) return getHtmlInlineStyleFromDraftText(textBlock);
 
     let nextText = [
@@ -93,16 +118,20 @@ function getHtmlInlineStyleFromDraftText(textBlock: RawDraftContentBlock, custom
     return getHtmlInlineStyleFromDraftText(textBlock);
 }
 
-function getDefaultInlineStyle(type: DraftInlineStyleType): IElementStyle | void {
+function getDefaultInlineStyle(type: DraftInlineStyleType): IElementStyle | undefined {
     switch(type){
         case "BOLD":
-            return {start: "<strong>", end: "</strong>"};
+            // return {start: "<strong>", end: "</strong>"};
+            return {element: "strong", properties: {class: "hello there"}};
         case "ITALIC":
-            return {start: "<i>", end: "</i>"};
+            // return {start: "<i>", end: "</i>"};
+            return {element: "i"};
         case "UNDERLINE":
-            return {start: "<u>", end: "</u>"};
+            // return {start: "<u>", end: "</u>"};
+            return {element: "u"};
         case "CODE":
-            return {start: "<code>", end: "</code>"};
+            // return {start: "<code>", end: "</code>"};
+            return {element: "code"};
         default:
             return;
     }

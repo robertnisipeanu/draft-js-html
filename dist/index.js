@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function convertDraftToHtml(rawContent, customBlockStyleFn, customMultiBlockStyleFn) {
-    // const parser = new DOMParser();
-    // const htmlDoc = parser.parseFromString("<strong>Test <i>test test</strong> test</i> test test", 'text/html').body.innerHTML;
+function convertDraftToHtml(rawContent, customInlineStyleFn, customBlockStyleFn, customMultiBlockStyleFn) {
     var contentApplyBlockStyle = rawContent.blocks.map(function (rawBlock) {
         var inlineStyledBlock;
         try {
-            inlineStyledBlock = getHtmlInlineStyleFromDraftText(rawBlock);
+            inlineStyledBlock = getHtmlInlineStyleFromDraftText(rawBlock, customInlineStyleFn);
             var parser = new DOMParser();
             inlineStyledBlock.text = parser.parseFromString(inlineStyledBlock.text, 'text/html').body.innerHTML;
         }
@@ -22,7 +20,6 @@ function convertDraftToHtml(rawContent, customBlockStyleFn, customMultiBlockStyl
     });
     var _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0).sort(function (a, b) { return (a.index > b.index) ? 1 : -1; });
     _calculatedBlockGroups.forEach(function (blockResult) {
-        // const blockGroupElement = getHtmlGroupBlockFromDraftText(blockResult.type);
         var blockGroupElement;
         if (customMultiBlockStyleFn)
             blockGroupElement = customMultiBlockStyleFn(blockResult.type);
@@ -44,13 +41,29 @@ function getStyleElement(style, customInlineStyleFn) {
         styleElement = getDefaultInlineStyle(style);
     return styleElement;
 }
+function getElementWithProperties(el) {
+    if (!el)
+        return;
+    var styleStart = "<";
+    styleStart += el.element;
+    var props = el.properties ?
+        Object.keys(el.properties).map(function (key) {
+            return key + "=\"" + el.properties[key] + "\"";
+        }).join(" ") : "";
+    if (props.length > 0)
+        styleStart += " " + props;
+    styleStart += ">";
+    var styleEnd = "</" + el.element + ">";
+    var finalStyle = { start: styleStart, end: styleEnd };
+    return finalStyle;
+}
 function getHtmlInlineStyleFromDraftText(textBlock, customInlineStyleFn) {
     if (!textBlock.inlineStyleRanges || textBlock.inlineStyleRanges.length == 0)
         return textBlock;
     var currentStyle = textBlock.inlineStyleRanges.shift();
     if (!currentStyle)
         return textBlock;
-    var styleEl = getStyleElement(currentStyle.style, customInlineStyleFn);
+    var styleEl = getElementWithProperties(getStyleElement(currentStyle.style, customInlineStyleFn));
     if (!styleEl)
         return getHtmlInlineStyleFromDraftText(textBlock);
     var nextText = [
@@ -76,13 +89,17 @@ function getHtmlInlineStyleFromDraftText(textBlock, customInlineStyleFn) {
 function getDefaultInlineStyle(type) {
     switch (type) {
         case "BOLD":
-            return { start: "<strong>", end: "</strong>" };
+            // return {start: "<strong>", end: "</strong>"};
+            return { element: "strong", properties: { class: "hello there" } };
         case "ITALIC":
-            return { start: "<i>", end: "</i>" };
+            // return {start: "<i>", end: "</i>"};
+            return { element: "i" };
         case "UNDERLINE":
-            return { start: "<u>", end: "</u>" };
+            // return {start: "<u>", end: "</u>"};
+            return { element: "u" };
         case "CODE":
-            return { start: "<code>", end: "</code>" };
+            // return {start: "<code>", end: "</code>"};
+            return { element: "code" };
         default:
             return;
     }
@@ -100,7 +117,6 @@ function getHtmlGroupBlockFromDraftText(type) {
 function getHtmlBlockFromDraftText(textBlock) {
     switch (textBlock.type) {
         case 'unstyled':
-        // return `<p>${rawBlock.text}</p>`;
         case 'paragraph':
             return "<p>" + textBlock.text + "</p>";
         case 'header-one':
