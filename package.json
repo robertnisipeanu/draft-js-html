@@ -10,6 +10,8 @@
   "files": [
     "dist/**/*"
   ],
+  "homepage": "https://github.com/robertnisipeanu/draft-js-html/blob/master/README.md",
+  "repository": "https://github.com/robertnisipeanu/draft-js-html",
   "keywords": ["draft-js", "html", "typescript", "parser"],
   "author": "Robert Nisipeanu",
   "license": "ISC",
