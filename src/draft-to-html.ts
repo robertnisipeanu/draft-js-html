@@ -106,7 +106,7 @@ function getHtmlInlineStyleFromDraftText(textBlock: RawDraftContentBlock, custom
 function getDefaultInlineStyle(type: DraftInlineStyleType): IElementStyle | undefined {
     switch(type){
         case "BOLD":
-            return {element: "strong", properties: {class: "hello there"}};
+            return {element: "strong"};
         case "ITALIC":
             return {element: "i"};
         case "UNDERLINE":
