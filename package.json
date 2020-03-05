@@ -10,8 +10,8 @@
   "files": [
     "dist/**/*"
   ],
-  "keywords": [],
-  "author": "",
+  "keywords": ["draft-js", "html", "typescript", "parser"],
+  "author": "Robert Nisipeanu",
   "license": "ISC",
   "devDependencies": {
     "@types/draft-js": "^0.10.38",
