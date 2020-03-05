@@ -14,7 +14,7 @@
   "repository": "https://github.com/robertnisipeanu/draft-js-html",
   "keywords": ["draft-js", "html", "typescript", "parser"],
   "author": "Robert Nisipeanu",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/draft-js": "^0.10.38",
     "typescript": "^3.8.2"
