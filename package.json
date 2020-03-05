@@ -1,14 +1,14 @@
 {
   "name": "draft-js-html",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
-    "dist/**/*"
+    "dist"
   ],
   "homepage": "https://github.com/robertnisipeanu/draft-js-html/blob/master/README.md",
   "repository": "https://github.com/robertnisipeanu/draft-js-html",
