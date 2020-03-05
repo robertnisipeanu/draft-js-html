@@ -34,7 +34,6 @@ export function convertDraftToHtml(rawContent: RawDraftContentState, customInlin
 
 
     _calculatedBlockGroups.forEach((blockResult: IResult) => {
-        // getHtmlGroupBlockFromDraftText()
         contentApplyBlockStyle = getHtmlGroupBlockFromDraftText(blockResult, contentApplyBlockStyle, customMultiBlockStyleFn);
     });
 
@@ -107,16 +106,12 @@ function getHtmlInlineStyleFromDraftText(textBlock: RawDraftContentBlock, custom
 function getDefaultInlineStyle(type: DraftInlineStyleType): IElementStyle | undefined {
     switch(type){
         case "BOLD":
-            // return {start: "<strong>", end: "</strong>"};
             return {element: "strong", properties: {class: "hello there"}};
         case "ITALIC":
-            // return {start: "<i>", end: "</i>"};
             return {element: "i"};
         case "UNDERLINE":
-            // return {start: "<u>", end: "</u>"};
             return {element: "u"};
         case "CODE":
-            // return {start: "<code>", end: "</code>"};
             return {element: "code"};
         default:
             return;
@@ -151,11 +146,6 @@ function getHtmlGroupBlockFromDraftText(blockResult: IResult, contentApplyBlockS
 }
 
 function getHtmlBlockFromDraftText(rawBlock: RawDraftContentBlock, customBlockStyleFn?: BlockStyleCallback) {
-    // if (customBlockStyleFn)
-    //     result = customBlockStyleFn(inlineStyledBlock);
-    //
-    // if (!result)
-    //     result = getHtmlBlockFromDraftText(inlineStyledBlock);
     let elem;
     if(customBlockStyleFn)
         elem = customBlockStyleFn(rawBlock.type);
