@@ -11,12 +11,7 @@ function convertDraftToHtml(rawContent, customInlineStyleFn, customBlockStyleFn,
         catch (e) {
             inlineStyledBlock = rawBlock;
         }
-        var result;
-        if (customBlockStyleFn)
-            result = customBlockStyleFn(inlineStyledBlock);
-        if (!result)
-            result = getHtmlBlockFromDraftText(inlineStyledBlock);
-        return result;
+        return getHtmlBlockFromDraftText(inlineStyledBlock, customBlockStyleFn);
     });
     var _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0).sort(function (a, b) { return (a.index > b.index) ? 1 : -1; });
     _calculatedBlockGroups.forEach(function (blockResult) {
@@ -120,32 +115,48 @@ function getHtmlGroupBlockFromDraftText(blockResult, contentApplyBlockStyle, cus
     }
     return contentApplyBlockStyle;
 }
-function getHtmlBlockFromDraftText(textBlock) {
-    switch (textBlock.type) {
+function getHtmlBlockFromDraftText(rawBlock, customBlockStyleFn) {
+    // if (customBlockStyleFn)
+    //     result = customBlockStyleFn(inlineStyledBlock);
+    //
+    // if (!result)
+    //     result = getHtmlBlockFromDraftText(inlineStyledBlock);
+    var elem;
+    if (customBlockStyleFn)
+        elem = customBlockStyleFn(rawBlock.type);
+    if (!elem)
+        elem = getDefaultBlockFromDraftText(rawBlock.type);
+    var result = getElementWithProperties(elem);
+    if (!result)
+        return rawBlock.text;
+    return result.start + rawBlock.text + result.end;
+}
+function getDefaultBlockFromDraftText(type) {
+    switch (type) {
         case 'unstyled':
         case 'paragraph':
-            return "<p>" + textBlock.text + "</p>";
+            return { element: 'p' };
         case 'header-one':
-            return "<h1>" + textBlock.text + "</h1>";
+            return { element: 'h1' };
         case 'header-two':
-            return "<h2>" + textBlock.text + "</h2>";
+            return { element: 'h2' };
         case 'header-three':
-            return "<h3>" + textBlock.text + "</h3>";
+            return { element: 'h3' };
         case 'header-four':
-            return "<h4>" + textBlock.text + "</h4>";
+            return { element: 'h4' };
         case 'header-five':
-            return "<h5>" + textBlock.text + "</h5>";
+            return { element: 'h5' };
         case 'header-six':
-            return "<h6>" + textBlock.text + "</h6>";
+            return { element: 'h6' };
         case 'ordered-list-item':
         case 'unordered-list-item':
-            return "<li>" + textBlock.text + "</li>";
+            return { element: 'li' };
         case 'blockquote':
-            return "<blockquote>" + textBlock.text + "</blockquote>";
+            return { element: 'blockquote' };
         case 'code-block':
-            return "<pre>" + textBlock.text + "</pre>";
+            return { element: 'pre' };
         default:
-            return "" + textBlock.text;
+            return;
     }
 }
 function calculateBlockGroups(data, start, recursiveResult) {

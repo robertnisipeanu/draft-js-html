@@ -11,7 +11,7 @@ interface IElement {
 }
 
 type InlineStyleCallback = (type: DraftInlineStyleType) => IElementStyle | void;
-type BlockStyleCallback = (rawBlock: RawDraftContentBlock) => string | void;
+type BlockStyleCallback = (type: DraftBlockType) => IElementStyle | void;
 type MultiBlockStyleCallback = (type: DraftBlockType) => IElementStyle | void;
 
 export function convertDraftToHtml(rawContent: RawDraftContentState, customInlineStyleFn?: InlineStyleCallback, customBlockStyleFn?: BlockStyleCallback, customMultiBlockStyleFn?: MultiBlockStyleCallback): string {
@@ -27,13 +27,7 @@ export function convertDraftToHtml(rawContent: RawDraftContentState, customInlin
             inlineStyledBlock = rawBlock;
         }
 
-        let result;
-        if (customBlockStyleFn)
-            result = customBlockStyleFn(inlineStyledBlock);
-
-        if (!result)
-            result = getHtmlBlockFromDraftText(inlineStyledBlock);
-        return result;
+        return getHtmlBlockFromDraftText(inlineStyledBlock, customBlockStyleFn);
     });
 
     const _calculatedBlockGroups = calculateBlockGroups(rawContent.blocks, 0).sort((a, b) => (a.index > b.index) ? 1 : -1);
@@ -156,32 +150,50 @@ function getHtmlGroupBlockFromDraftText(blockResult: IResult, contentApplyBlockS
     return contentApplyBlockStyle;
 }
 
-function getHtmlBlockFromDraftText(textBlock: RawDraftContentBlock): string {
-    switch (textBlock.type) {
+function getHtmlBlockFromDraftText(rawBlock: RawDraftContentBlock, customBlockStyleFn?: BlockStyleCallback) {
+    // if (customBlockStyleFn)
+    //     result = customBlockStyleFn(inlineStyledBlock);
+    //
+    // if (!result)
+    //     result = getHtmlBlockFromDraftText(inlineStyledBlock);
+    let elem;
+    if(customBlockStyleFn)
+        elem = customBlockStyleFn(rawBlock.type);
+    if(!elem)
+        elem = getDefaultBlockFromDraftText(rawBlock.type);
+
+    const result = getElementWithProperties(elem);
+    if(!result) return rawBlock.text;
+
+    return result.start + rawBlock.text + result.end;
+}
+
+function getDefaultBlockFromDraftText(type: DraftBlockType): IElementStyle | void {
+    switch (type) {
         case 'unstyled':
         case 'paragraph':
-            return `<p>${textBlock.text}</p>`;
+            return {element: 'p'};
         case 'header-one':
-            return `<h1>${textBlock.text}</h1>`;
+            return {element: 'h1'};
         case 'header-two':
-            return `<h2>${textBlock.text}</h2>`;
+            return {element: 'h2'};
         case 'header-three':
-            return `<h3>${textBlock.text}</h3>`;
+            return {element: 'h3'};
         case 'header-four':
-            return `<h4>${textBlock.text}</h4>`;
+            return {element: 'h4'};
         case 'header-five':
-            return `<h5>${textBlock.text}</h5>`;
+            return {element: 'h5'};
         case 'header-six':
-            return `<h6>${textBlock.text}</h6>`;
+            return {element: 'h6'};
         case 'ordered-list-item':
         case 'unordered-list-item':
-            return `<li>${textBlock.text}</li>`;
+            return {element: 'li'};
         case 'blockquote':
-            return `<blockquote>${textBlock.text}</blockquote>`;
+            return {element: 'blockquote'};
         case 'code-block':
-            return `<pre>${textBlock.text}</pre>`;
+            return {element: 'pre'};
         default:
-            return `${textBlock.text}`;
+            return;
     }
 }
 
