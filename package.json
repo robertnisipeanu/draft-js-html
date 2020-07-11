@@ -21,5 +21,6 @@
   },
   "peerDependencies": {
     "draft-js": "^0.11.4"
-  }
+  },
+  "publishConfig": { "registry": "https://npm.pkg.github.com/" }
 }
