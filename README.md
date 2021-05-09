@@ -1,6 +1,6 @@
 # draft-js-html
 
-This repository is used to convert draft-js RawDraftContentState's into html content
+draft-js-html is used to convert draft-js RawDraftContentState's into html content
 
 It supports custom inline styling, custom block styling and custom multi block style (multiple elements of the same type, for example custom 'ul', 'ol', codeblock of multiple blocks)
 
@@ -59,5 +59,3 @@ convertDraftToHtml(rawContent, type => {
      - MultiBlockStyles:
         - `ordered-list-item` => `{element: 'ol'}`,
         - `unordered-list-item` => `{element: 'ul'}`
-
-Coming soon: Conversion from HTML to RawDraftContentState
